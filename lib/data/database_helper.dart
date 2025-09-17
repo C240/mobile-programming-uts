@@ -1,5 +1,6 @@
 // lib/data/database_helper.dart
 
+import 'dart:math';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -55,5 +56,44 @@ class DatabaseHelper {
         timestamp TEXT
       )
     ''');
+  }
+
+  // Register Function
+  Future<int> registerUser(String username, String password, String pin) async {
+    final db = await database;
+    return await db.transaction((txn) async {
+      int userId = await txn.insert(
+        'users',
+        {
+          'username': username,
+          'password': password,
+          'pin': pin,
+        },
+        conflictAlgorithm: ConflictAlgorithm.abort,
+      );
+      String accountNumber = 'ID' + Random().nextInt(99999999).toString().padLeft(8, '0');
+      await txn.insert(
+        'accounts',
+        {
+          'user_id': userId,
+          'accountNumber': accountNumber,
+          'balance': 500000.0,
+        });
+        return userId;
+    });
+  }
+
+  Future<Map<String, dynamic>?> loginUser(String username, String password) async {
+    final db = await database;
+    var result = await db.query(
+      'users',
+      where: 'username = ? AND password = ?',
+      whereArgs: [username, password],
+    );
+    
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
   }
 }
