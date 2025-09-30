@@ -27,7 +27,7 @@ class _LoginPageState extends State<LoginPage> {
         User loggedInUser = User.fromMap(userMap);
         Navigator.pushReplacementNamed(
           context,
-          '/dashboard',
+          '/main',
           arguments: loggedInUser,
         );
       } else {
