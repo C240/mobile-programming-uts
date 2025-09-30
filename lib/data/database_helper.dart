@@ -1,6 +1,7 @@
 // lib/data/database_helper.dart
 
 import 'dart:math';
+import 'package:mobile_programming_uts/models/user_model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -95,5 +96,146 @@ class DatabaseHelper {
       return result.first;
     }
     return null;
+  }
+
+  Future<Map<String, dynamic>?> getAccount(int userId) async {
+    final db = await database;
+    var result = await db.query(
+      'accounts',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+    
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
+
+  Future<int> transfer(
+    String fromAccountNumber,
+    String toAccountNumber,
+    double amount,
+    String description,
+  ) async {
+    final db = await database;
+    return await db.transaction((txn) async {
+      var fromAccountResult = await txn.query(
+        'accounts',
+        where: 'accountNumber = ?',
+        whereArgs: [fromAccountNumber],
+      );
+      if (fromAccountResult.isEmpty) {
+        throw Exception('Rekening pengirim tidak ditemukan');
+      }
+      double fromBalance = fromAccountResult.first['balance'] as double;
+      if (fromBalance < amount) {
+        throw Exception('Saldo tidak mencukupi');
+      }
+
+      double newFromBalance = fromBalance - amount;
+      await txn.update(
+        'accounts',
+        {'balance': newFromBalance},
+        where: 'accountNumber = ?',
+        whereArgs: [fromAccountNumber],
+      );
+
+      var toAccountResult = await txn.query(
+        'accounts',
+        where: 'accountNumber = ?',
+        whereArgs: [toAccountNumber],
+      );
+      if (toAccountResult.isEmpty) {
+        throw Exception('Rekening tujuan tidak ditemukan');
+      }
+      double toBalance = toAccountResult.first['balance'] as double;
+      double newToBalance = toBalance + amount;
+      await txn.update(
+        'accounts',
+        {'balance': newToBalance},
+        where: 'accountNumber = ?',
+        whereArgs: [toAccountNumber],
+      );
+
+      int transactionId = await txn.insert(
+        'transactions',
+        {
+          'fromAccountNumber': fromAccountNumber,
+          'toAccountNumber': toAccountNumber,
+          'amount': amount,
+          'description': description,
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+      return transactionId;
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getTransactions(String accountNumber) async {
+    final db = await database;
+    var result = await db.query(
+      'transactions',
+      where: 'fromAccountNumber = ? OR toAccountNumber = ?',
+      whereArgs: [accountNumber, accountNumber],
+      orderBy: 'timestamp DESC',
+    );
+    return result;
+  }
+
+  Future<bool> verifyPin(int userId, String pin) async {
+    final db = await database;
+    var result = await db.query(
+      'users',
+      where: 'id = ? AND pin = ?',
+      whereArgs: [userId, pin],
+    );
+    return result.isNotEmpty;
+  }
+
+  Future<Map<String, dynamic>?> getTransactionById(int id) async {
+    final db = await database;
+    var result = await db.query(
+      'transactions',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
+  
+  // --- FUNGSI YANG HILANG (getUserById) ---
+  Future<User?> getUserById(int id) async {
+    final db = await database;
+    var result = await db.query('users', where: 'id = ?', whereArgs: [id]);
+    if (result.isNotEmpty) {
+      return User.fromMap(result.first);
+    }
+    return null;
+  }
+  
+  // --- FUNGSI YANG HILANG (updatePin) ---
+  Future<bool> updatePin(int userId, String oldPin, String newPin) async {
+    final db = await database;
+    
+    var result = await db.query(
+      'users',
+      where: 'id = ? AND pin = ?',
+      whereArgs: [userId, oldPin],
+    );
+
+    if (result.isNotEmpty) {
+      int count = await db.update(
+        'users',
+        {'pin': newPin},
+        where: 'id = ?',
+        whereArgs: [userId],
+      );
+      return count > 0;
+    }
+    
+    return false;
   }
 }
