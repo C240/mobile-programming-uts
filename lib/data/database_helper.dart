@@ -273,13 +273,13 @@ class DatabaseHelper {
     );
   }
 
-    /// Insert transaksi baru
+
   Future<int> insertTransaction({
     required String fromAccount,
     required String toAccountNumber,
     required double amount,
     String? description,
-    String? category, // tambahkan ini
+    String? category,
   }) async {
     final db = await database;
     return await db.insert('transactions', {
@@ -287,7 +287,7 @@ class DatabaseHelper {
       'toAccountNumber': toAccountNumber,
       'amount': amount,
       'description': description,
-      'category': category, // simpan ke database
+      'category': category,
       'timestamp': DateTime.now().toIso8601String(),
     });
   }

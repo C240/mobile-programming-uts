@@ -22,7 +22,7 @@ class _TagihanPageState extends State<TagihanPage> {
   String? _selectedBill;
   bool _saveFavorite = false;
   double? _favoriteAmount;
-  List<Map<String, dynamic>> _favoriteTransactions = [];
+  final List<Map<String, dynamic>> _favoriteTransactions = [];
 
   final List<Map<String, dynamic>> _billTypes = [
     {'name': 'Listrik', 'icon': Icons.flash_on},
@@ -59,7 +59,7 @@ class _TagihanPageState extends State<TagihanPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                // Verifikasi PIN
+
                 bool isPinValid = await DatabaseHelper().verifyPin(
                   widget.account.userId,
                   _pinController.text,
@@ -89,11 +89,11 @@ class _TagihanPageState extends State<TagihanPage> {
 
   Future<void> _completePayment(double amount) async {
     try {
-      // 1️⃣ Update saldo akun
+
       double newBalance = widget.account.balance - amount;
       await DatabaseHelper().updateAccountBalance(widget.account.accountNumber, newBalance);
 
-      // 2️⃣ Catat transaksi
+
       int transactionId = await DatabaseHelper().insertTransaction(
         fromAccount: widget.account.accountNumber,
         toAccountNumber: 'TAGIHAN_${_selectedBill!}', // dummy
@@ -106,7 +106,7 @@ class _TagihanPageState extends State<TagihanPage> {
       if (transactionMap != null) {
         final transaction = Transaction.fromMap(transactionMap);
 
-        // 3️⃣ Simpan favorit
+
         if (_saveFavorite) {
           setState(() {
             _favoriteAmount = amount;
@@ -117,12 +117,12 @@ class _TagihanPageState extends State<TagihanPage> {
           });
         }
 
-        // 4️⃣ Update UI saldo
+
         setState(() {
           widget.account.balance = newBalance;
         });
 
-        // 5️⃣ Popup sukses
+
         showDialog(
           context: context,
           builder: (context) => Dialog(
