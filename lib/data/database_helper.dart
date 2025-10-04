@@ -262,4 +262,33 @@ class DatabaseHelper {
 
     return false;
   }
+
+  Future<void> updateAccountBalance(String accountNumber, double newBalance) async {
+    final db = await database;
+    await db.update(
+      'accounts',
+      {'balance': newBalance},
+      where: 'accountNumber = ?',
+      whereArgs: [accountNumber],
+    );
+  }
+
+    /// Insert transaksi baru
+  Future<int> insertTransaction({
+    required String fromAccount,
+    required String toAccountNumber,
+    required double amount,
+    String? description,
+    String? category, // tambahkan ini
+  }) async {
+    final db = await database;
+    return await db.insert('transactions', {
+      'fromAccountNumber': fromAccount,
+      'toAccountNumber': toAccountNumber,
+      'amount': amount,
+      'description': description,
+      'category': category, // simpan ke database
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
 }
