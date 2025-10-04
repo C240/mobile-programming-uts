@@ -21,3 +21,10 @@ double parseRupiahToDouble(String input) {
   if (digits.isEmpty) return 0;
   return double.parse(digits);
 }
+String formatDateShort(DateTime date) {
+  return DateFormat('dd/MM/yyyy').format(date);
+}
+
+String formatDateTimeLong(DateTime date) {
+  return DateFormat('dd MMM yyyy HH:mm').format(date);
+}

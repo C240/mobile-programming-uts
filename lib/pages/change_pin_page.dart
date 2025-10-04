@@ -1,5 +1,3 @@
-// lib/pages/change_pin_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:mobile_programming_uts/data/database_helper.dart';
 import 'package:mobile_programming_uts/models/user_model.dart';
@@ -28,6 +26,8 @@ class _ChangePinPageState extends State<ChangePinPage> {
           _newPinController.text,
         );
 
+        if (!mounted) return;
+
         if (updated) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('PIN berhasil diubah!'), backgroundColor: Colors.green),
@@ -39,6 +39,7 @@ class _ChangePinPageState extends State<ChangePinPage> {
           );
         }
       } catch (e) {
+         if (!mounted) return;
          ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
           );

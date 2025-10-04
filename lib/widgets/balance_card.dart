@@ -1,5 +1,3 @@
-// lib/widgets/balance_card.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_programming_uts/models/account_model.dart';

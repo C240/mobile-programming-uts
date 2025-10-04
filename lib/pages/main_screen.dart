@@ -3,11 +3,12 @@ import 'package:mobile_programming_uts/data/database_helper.dart';
 import 'package:mobile_programming_uts/models/account_model.dart';
 import 'package:mobile_programming_uts/models/user_model.dart';
 
-// Import halaman-halaman yang akan menjadi Tab
 import 'package:mobile_programming_uts/pages/tabs/home_tab.dart';
 import 'package:mobile_programming_uts/pages/tabs/history_tab.dart';
+import 'package:mobile_programming_uts/pages/tabs/insight_tab.dart';
 import 'package:mobile_programming_uts/pages/tabs/profile_tab.dart';
 import 'package:mobile_programming_uts/utils/format.dart';
+import 'package:mobile_programming_uts/utils/branding.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -42,12 +43,16 @@ class _MainScreenState extends State<MainScreen> {
         _accounts = accounts;
         _selectedAccount = _selectedAccount ?? accounts.first;
         _pages = [
-          HomeTab(user: _user!, account: _selectedAccount!),
+          HomeTab(
+            user: _user!,
+            account: _selectedAccount!,
+            onAfterTransfer: () => _loadAccounts(_user!.id),
+          ),
           HistoryTab(account: _selectedAccount!),
+          InsightTab(account: _selectedAccount!),
           ProfileTab(user: _user!),
         ];
       });
-      // Seed akun kedua untuk demo multi-akun jika baru ada satu akun
       if (accounts.length == 1) {
         await DatabaseHelper().createAccount(userId, 250000.0);
         final refreshed = await DatabaseHelper().getAccounts(userId);
@@ -60,30 +65,22 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int index) {
-    if (index == 1) {
-      // Index 1 adalah tombol 'Transfer'
-      // Kita tidak mengganti tab, tapi membuka halaman baru
-      Navigator.pushNamed(context, '/transfer', arguments: _selectedAccount).then((_) {
-        // Muat ulang data setelah kembali dari halaman transfer
-        if (_user != null) {
-          _loadAccounts(_user!.id);
-        }
-      });
-    } else {
-      // Untuk Beranda, Riwayat, dan Profil, kita ganti tab
-      setState(() {
-        // Sesuaikan index karena 'Transfer' bukan tab
-        _selectedIndex = index > 1 ? index -1 : index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   void _onSelectAccount(Account account) {
     setState(() {
       _selectedAccount = account;
       _pages = [
-        HomeTab(user: _user!, account: _selectedAccount!),
+        HomeTab(
+          user: _user!,
+          account: _selectedAccount!,
+          onAfterTransfer: () => _loadAccounts(_user!.id),
+        ),
         HistoryTab(account: _selectedAccount!),
+        InsightTab(account: _selectedAccount!),
         ProfileTab(user: _user!),
       ];
     });
@@ -95,14 +92,24 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Tampilkan loading jika data belum siap
     if (_user == null || _selectedAccount == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_getAppBarTitle(_selectedIndex)),
+        title: Row(
+          children: [
+            const Icon(Icons.account_balance, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '$appName • ${_getAppBarTitle(_selectedIndex)}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -133,30 +140,15 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Beranda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.send),
-            label: 'Transfer',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Riwayat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onItemTapped,
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Beranda'),
+          NavigationDestination(icon: Icon(Icons.history), label: 'Riwayat'),
+          NavigationDestination(icon: Icon(Icons.insights), label: 'Insight'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
         ],
-        // Logika untuk highlight item yang benar
-        currentIndex: _selectedIndex >= 1 ? _selectedIndex + 1 : _selectedIndex,
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
       ),
     );
   }
@@ -166,8 +158,10 @@ class _MainScreenState extends State<MainScreen> {
       case 0:
         return 'Beranda';
       case 1:
-        return 'Riwayat Transaksi';
+        return 'Transaksi';
       case 2:
+        return 'Insight';
+      case 3:
         return 'Profil';
       default:
         return 'Mobile Banking';

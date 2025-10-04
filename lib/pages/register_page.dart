@@ -1,5 +1,3 @@
-// lib/pages/register_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:mobile_programming_uts/data/database_helper.dart';
 
@@ -25,12 +23,14 @@ class _RegisterPageState extends State<RegisterPage> {
           _pinController.text,
         );
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registrasi berhasil! Silakan login.')),
         );
 
         Navigator.pop(context);
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal registrasi: $e')),
         );

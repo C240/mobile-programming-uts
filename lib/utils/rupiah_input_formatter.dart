@@ -10,7 +10,6 @@ class RupiahInputFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     final text = newValue.text;
-    // Hapus semua selain angka
     final digitsOnly = text.replaceAll(RegExp(r'[^0-9]'), '');
 
     if (digitsOnly.isEmpty) {
@@ -20,7 +19,6 @@ class RupiahInputFormatter extends TextInputFormatter {
       );
     }
 
-    // Format dengan pemisah ribuan
     final number = int.parse(digitsOnly);
     final formatted = _formatter.format(number);
 

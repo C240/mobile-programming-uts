@@ -1,11 +1,10 @@
-// lib/models/transaction_model.dart
-
 class Transaction {
   final int id;
   final String fromAccountNumber;
   final String toAccountNumber;
   final double amount;
   final String? description;
+  final String? category;
   final DateTime timestamp;
 
   Transaction({
@@ -14,6 +13,7 @@ class Transaction {
     required this.toAccountNumber,
     required this.amount,
     this.description,
+    this.category,
     required this.timestamp,
   });
 
@@ -22,8 +22,9 @@ class Transaction {
       id: map['id'],
       fromAccountNumber: map['fromAccountNumber'],
       toAccountNumber: map['toAccountNumber'],
-      amount: map['amount'],
+      amount: (map['amount'] is num) ? (map['amount'] as num).toDouble() : double.tryParse('${map['amount']}') ?? 0.0,
       description: map['description'],
+      category: map['category'],
       timestamp: DateTime.parse(map['timestamp']),
     );
   }
