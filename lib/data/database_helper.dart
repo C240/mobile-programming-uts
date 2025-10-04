@@ -68,35 +68,33 @@ class DatabaseHelper {
   Future<int> registerUser(String username, String password, String pin) async {
     final db = await database;
     return await db.transaction((txn) async {
-      int userId = await txn.insert(
-        'users',
-        {
-          'username': username,
-          'password': password,
-          'pin': pin,
-        },
-        conflictAlgorithm: ConflictAlgorithm.abort,
-      );
-      String accountNumber = 'ID${Random().nextInt(99999999).toString().padLeft(8, '0')}';
-      await txn.insert(
-        'accounts',
-        {
-          'user_id': userId,
-          'accountNumber': accountNumber,
-          'balance': 500000.0,
-        });
-        return userId;
+      int userId = await txn.insert('users', {
+        'username': username,
+        'password': password,
+        'pin': pin,
+      }, conflictAlgorithm: ConflictAlgorithm.abort);
+      String accountNumber =
+          'ID${Random().nextInt(99999999).toString().padLeft(8, '0')}';
+      await txn.insert('accounts', {
+        'user_id': userId,
+        'accountNumber': accountNumber,
+        'balance': 500000.0,
+      });
+      return userId;
     });
   }
 
-  Future<Map<String, dynamic>?> loginUser(String username, String password) async {
+  Future<Map<String, dynamic>?> loginUser(
+    String username,
+    String password,
+  ) async {
     final db = await database;
     var result = await db.query(
       'users',
       where: 'username = ? AND password = ?',
       whereArgs: [username, password],
     );
-    
+
     if (result.isNotEmpty) {
       return result.first;
     }
@@ -116,25 +114,22 @@ class DatabaseHelper {
 
   Future<int> createAccount(int userId, double initialBalance) async {
     final db = await database;
-    String accountNumber = 'ID${Random().nextInt(99999999).toString().padLeft(8, '0')}';
-    return await db.insert(
-      'accounts',
-      {
-        'user_id': userId,
-        'accountNumber': accountNumber,
-        'balance': initialBalance,
-      },
-      conflictAlgorithm: ConflictAlgorithm.abort,
-    );
+    String accountNumber =
+        'ID${Random().nextInt(99999999).toString().padLeft(8, '0')}';
+    return await db.insert('accounts', {
+      'user_id': userId,
+      'accountNumber': accountNumber,
+      'balance': initialBalance,
+    }, conflictAlgorithm: ConflictAlgorithm.abort);
   }
 
   Future<int> transfer(
     String fromAccountNumber,
     String toAccountNumber,
     double amount,
-    String description,
-    {String? category}
-  ) async {
+    String description, {
+    String? category,
+  }) async {
     final db = await database;
     return await db.transaction((txn) async {
       var fromAccountResult = await txn.query(
@@ -145,7 +140,8 @@ class DatabaseHelper {
       if (fromAccountResult.isEmpty) {
         throw Exception('Rekening pengirim tidak ditemukan');
       }
-      double fromBalance = (fromAccountResult.first['balance'] as num).toDouble();
+      double fromBalance = (fromAccountResult.first['balance'] as num)
+          .toDouble();
       if (fromBalance < amount) {
         throw Exception('Saldo tidak mencukupi');
       }
@@ -175,21 +171,21 @@ class DatabaseHelper {
         whereArgs: [toAccountNumber],
       );
 
-      int transactionId = await txn.insert(
-        'transactions',
-        {
-          'fromAccountNumber': fromAccountNumber,
-          'toAccountNumber': toAccountNumber,
-          'amount': amount,
-          'description': description,
-          'category': category,
-          'timestamp': DateTime.now().toIso8601String(),
-        });
+      int transactionId = await txn.insert('transactions', {
+        'fromAccountNumber': fromAccountNumber,
+        'toAccountNumber': toAccountNumber,
+        'amount': amount,
+        'description': description,
+        'category': category,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
       return transactionId;
     });
   }
 
-  Future<List<Map<String, dynamic>>> getTransactions(String accountNumber) async {
+  Future<List<Map<String, dynamic>>> getTransactions(
+    String accountNumber,
+  ) async {
     final db = await database;
     var result = await db.query(
       'transactions',
@@ -217,12 +213,13 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
-    
+
     if (result.isNotEmpty) {
       return result.first;
     }
     return null;
   }
+
   Future<User?> getUserById(int id) async {
     final db = await database;
     var result = await db.query('users', where: 'id = ?', whereArgs: [id]);
@@ -231,6 +228,7 @@ class DatabaseHelper {
     }
     return null;
   }
+
   Future<User?> getUserByAccountNumber(String accountNumber) async {
     final db = await database;
     final res = await db.rawQuery(
@@ -242,9 +240,10 @@ class DatabaseHelper {
     }
     return null;
   }
+
   Future<bool> updatePin(int userId, String oldPin, String newPin) async {
     final db = await database;
-    
+
     var result = await db.query(
       'users',
       where: 'id = ? AND pin = ?',
@@ -260,7 +259,7 @@ class DatabaseHelper {
       );
       return count > 0;
     }
-    
+
     return false;
   }
 }
