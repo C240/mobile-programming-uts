@@ -144,11 +144,11 @@ class _TagihanPageState extends State<TagihanPage> {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Tutup'),
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 45),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
+                    child: const Text('Tutup'),
                   )
                 ],
               ),
@@ -287,12 +287,12 @@ class _TagihanPageState extends State<TagihanPage> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _payBill,
-                  child: const Text('Bayar'),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
                     backgroundColor: Colors.green,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
+                  child: const Text('Bayar'),
                 ),
                 const SizedBox(height: 12),
                 TextButton(
