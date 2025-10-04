@@ -30,7 +30,14 @@ class _TransferPageState extends State<TransferPage> {
   double _estimatedRemaining = 0.0;
   List<String> _recentRecipients = [];
   static const List<String> _categories = [
-    'Belanja', 'Kesehatan', 'Hiburan', 'Transportasi', 'Makan', 'Tagihan', 'Pendidikan', 'Lainnya'
+    'Belanja',
+    'Kesehatan',
+    'Hiburan',
+    'Transportasi',
+    'Makan',
+    'Tagihan',
+    'Pendidikan',
+    'Lainnya',
   ];
   String? _selectedCategory = 'Belanja';
   void _validateAndShowPinDialog() {
@@ -38,7 +45,10 @@ class _TransferPageState extends State<TransferPage> {
       final amountString = _amountController.text;
       final amount = parseRupiahToDouble(amountString);
       final toAcc = _toAccountController.text.trim();
-      final fromAcc = (_selectedFromAccount ?? (ModalRoute.of(context)!.settings.arguments as Account)).accountNumber;
+      final fromAcc =
+          (_selectedFromAccount ??
+                  (ModalRoute.of(context)!.settings.arguments as Account))
+              .accountNumber;
       if (amount <= 0) {
         _showError('Format jumlah transfer tidak valid.');
         return;
@@ -52,8 +62,11 @@ class _TransferPageState extends State<TransferPage> {
   }
 
   void _showConfirmSheet(double amount) {
-    final from = _selectedFromAccount ?? (ModalRoute.of(context)!.settings.arguments as Account);
+    final from =
+        _selectedFromAccount ??
+        (ModalRoute.of(context)!.settings.arguments as Account);
     final toAcc = _toAccountController.text.trim();
+    print('nomor akun tujuan: $toAcc');
     final desc = _descriptionController.text.trim();
     showModalBottomSheet(
       context: context,
@@ -78,7 +91,7 @@ class _TransferPageState extends State<TransferPage> {
   }
 
   void _showPinDialog(double amount) {
-    _pinController.clear(); 
+    _pinController.clear();
     showDialog(
       context: context,
       builder: (context) {
@@ -113,7 +126,9 @@ class _TransferPageState extends State<TransferPage> {
   }
 
   void _performTransfer(double amount) async {
-    final selected = _selectedFromAccount ?? (ModalRoute.of(context)!.settings.arguments as Account);
+    final selected =
+        _selectedFromAccount ??
+        (ModalRoute.of(context)!.settings.arguments as Account);
     if (_toAccountController.text.trim() == selected.accountNumber) {
       _showError('Tidak dapat transfer ke akun sendiri.');
       return;
@@ -125,7 +140,10 @@ class _TransferPageState extends State<TransferPage> {
       return;
     }
 
-    bool isPinValid = await DatabaseHelper().verifyPin(user.id, _pinController.text);
+    bool isPinValid = await DatabaseHelper().verifyPin(
+      user.id,
+      _pinController.text,
+    );
 
     if (!mounted) return;
 
@@ -149,7 +167,9 @@ class _TransferPageState extends State<TransferPage> {
         category: _selectedCategory,
       );
 
-      var newTransactionMap = await DatabaseHelper().getTransactionById(transactionId);
+      var newTransactionMap = await DatabaseHelper().getTransactionById(
+        transactionId,
+      );
       if (newTransactionMap != null) {
         final newTransaction = Transaction.fromMap(newTransactionMap);
         if (!mounted) return;
@@ -165,12 +185,9 @@ class _TransferPageState extends State<TransferPage> {
   }
 
   void _showError(String message) {
-     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
-      );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   Future<void> _lookupRecipient(String accountNumber) async {
@@ -191,11 +208,21 @@ class _TransferPageState extends State<TransferPage> {
     super.didChangeDependencies();
     if (!_initialized) {
       _initialized = true;
-      final fromAccountArg = ModalRoute.of(context)!.settings.arguments as Account;
-      _selectedFromAccount = fromAccountArg;
-      _loadUserAccounts(fromAccountArg.userId);
+
+      // Cek apakah ada argumen yang dikirim
+      final arguments = ModalRoute.of(context)!.settings.arguments;
+
+      if (arguments is Account) {
+        _toAccountController.text = arguments.accountNumber;
+        _lookupRecipient(arguments.accountNumber);
+      }
+      const int currentUserId = 1;
+      _loadUserAccounts(currentUserId).then((_) {
+        // Setelah akun dimuat, baru muat insights
+        _loadTransferInsights();
+      });
+
       _amountController.addListener(_updateEstimatedRemaining);
-      _loadTransferInsights();
     }
   }
 
@@ -210,7 +237,9 @@ class _TransferPageState extends State<TransferPage> {
       if (_selectedFromAccount != null) {
         final match = _userAccounts.firstWhere(
           (a) => a.accountNumber == _selectedFromAccount!.accountNumber,
-          orElse: () => _userAccounts.isNotEmpty ? _userAccounts.first : _selectedFromAccount!,
+          orElse: () => _userAccounts.isNotEmpty
+              ? _userAccounts.first
+              : _selectedFromAccount!,
         );
         _selectedFromAccount = match;
       } else if (_userAccounts.isNotEmpty) {
@@ -222,14 +251,19 @@ class _TransferPageState extends State<TransferPage> {
 
   void _loadTransferInsights() async {
     if (_selectedFromAccount == null) return;
-    final maps = await DatabaseHelper().getTransactions(_selectedFromAccount!.accountNumber);
+    final maps = await DatabaseHelper().getTransactions(
+      _selectedFromAccount!.accountNumber,
+    );
     final now = DateTime.now();
     double monthDebit = 0.0;
     final List<String> recipients = [];
     for (final m in maps) {
       final tx = Transaction.fromMap(m);
-      final isDebit = tx.fromAccountNumber == _selectedFromAccount!.accountNumber;
-      if (isDebit && tx.timestamp.year == now.year && tx.timestamp.month == now.month) {
+      final isDebit =
+          tx.fromAccountNumber == _selectedFromAccount!.accountNumber;
+      if (isDebit &&
+          tx.timestamp.year == now.year &&
+          tx.timestamp.month == now.month) {
         monthDebit += tx.amount;
       }
       if (isDebit) {
@@ -261,9 +295,7 @@ class _TransferPageState extends State<TransferPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Transfer'),
-      ),
+      appBar: AppBar(title: const Text('Transfer')),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -275,13 +307,18 @@ class _TransferPageState extends State<TransferPage> {
                 if (_selectedFromAccount != null) ...[
                   Card(
                     elevation: 0,
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Ringkasan', style: Theme.of(context).textTheme.titleMedium),
+                          Text(
+                            'Ringkasan',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -289,9 +326,21 @@ class _TransferPageState extends State<TransferPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Saldo', style: Theme.of(context).textTheme.labelMedium),
+                                    Text(
+                                      'Saldo',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelMedium,
+                                    ),
                                     const SizedBox(height: 4),
-                                    Text(formatRupiah(_selectedFromAccount!.balance), style: Theme.of(context).textTheme.titleMedium),
+                                    Text(
+                                      formatRupiah(
+                                        _selectedFromAccount!.balance,
+                                      ),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -299,9 +348,19 @@ class _TransferPageState extends State<TransferPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Debit Bulan Ini', style: Theme.of(context).textTheme.labelMedium),
+                                    Text(
+                                      'Debit Bulan Ini',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelMedium,
+                                    ),
                                     const SizedBox(height: 4),
-                                    Text(formatRupiah(_monthlyDebit), style: Theme.of(context).textTheme.titleMedium),
+                                    Text(
+                                      formatRupiah(_monthlyDebit),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -322,7 +381,10 @@ class _TransferPageState extends State<TransferPage> {
                           ),
                           if (_recentRecipients.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            Text('Penerima terakhir', style: Theme.of(context).textTheme.titleSmall),
+                            Text(
+                              'Penerima terakhir',
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 8,
@@ -366,34 +428,38 @@ class _TransferPageState extends State<TransferPage> {
                           ],
                         )
                       : (_userAccounts.isEmpty
-                          ? const Text('Tidak ada dompet tersedia')
-                          : DropdownButtonHideUnderline(
-                              child: DropdownButton<Account>(
-                                isExpanded: true,
-                                value: _userAccounts.any((a) => a.accountNumber == _selectedFromAccount?.accountNumber)
-                                    ? _selectedFromAccount
-                                    : null,
-                items: _userAccounts
-                    .map(
-                      (a) => DropdownMenuItem<Account>(
-                        value: a,
-                        child: Text('${a.accountNumber} • ${formatRupiah(a.balance)}'),
-                      ),
-                    )
-                    .toList(),
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedFromAccount = val;
-                                  });
-                                },
-                              ),
-                            )),
+                            ? const Text('Tidak ada dompet tersedia')
+                            : DropdownButtonHideUnderline(
+                                child: DropdownButton<Account>(
+                                  isExpanded: true,
+                                  value:
+                                      _userAccounts.any(
+                                        (a) =>
+                                            a.accountNumber ==
+                                            _selectedFromAccount?.accountNumber,
+                                      )
+                                      ? _selectedFromAccount
+                                      : null,
+                                  items: _userAccounts
+                                      .map(
+                                        (a) => DropdownMenuItem<Account>(
+                                          value: a,
+                                          child: Text(
+                                            '${a.accountNumber} • ${formatRupiah(a.balance)}',
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedFromAccount = val;
+                                    });
+                                  },
+                                ),
+                              )),
                 ),
                 const SizedBox(height: 24),
-                Text(
-                  'Kirim Ke',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                Text('Kirim Ke', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _toAccountController,
@@ -434,7 +500,11 @@ class _TransferPageState extends State<TransferPage> {
                 if (!_checkingRecipient && _recipientName != null)
                   Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text('Nama penerima: ${_recipientName!}'),
                     ],
@@ -478,7 +548,10 @@ class _TransferPageState extends State<TransferPage> {
                 DropdownButtonFormField<String>(
                   initialValue: _selectedCategory,
                   items: _categories
-                      .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
+                      .map(
+                        (c) =>
+                            DropdownMenuItem<String>(value: c, child: Text(c)),
+                      )
                       .toList(),
                   onChanged: (val) {
                     setState(() {
@@ -497,9 +570,9 @@ class _TransferPageState extends State<TransferPage> {
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    textStyle: const TextStyle(fontSize: 18)
+                    textStyle: const TextStyle(fontSize: 18),
                   ),
                   child: const Text('Lanjutkan'),
                 ),
