@@ -1,10 +1,8 @@
-// lib/pages/transaction_detail_page.dart
-
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:mobile_programming_uts/utils/format.dart';
 import 'package:mobile_programming_uts/data/database_helper.dart';
 import 'package:mobile_programming_uts/models/transaction_model.dart';
+import 'package:mobile_programming_uts/utils/category_utils.dart';
 
 class TransactionDetailPage extends StatefulWidget {
   const TransactionDetailPage({super.key});
@@ -37,7 +35,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final formatted = DateFormat('dd MMM yyyy HH:mm').format(transaction.timestamp);
+    final formatted = formatDateTimeLong(transaction.timestamp);
 
     return Scaffold(
       appBar: AppBar(
@@ -62,6 +60,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             _buildDetailRow('Ke', transaction.toAccountNumber),
             _buildDetailRow('Nama Penerima', recipientName ?? '-'),
             _buildDetailRow('Deskripsi', transaction.description ?? '-'),
+            _buildCategoryRow(transaction.category),
             _buildDetailRow('Waktu', formatted),
             const Spacer(),
             ElevatedButton(
@@ -95,4 +94,31 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       ),
     );
   }
+
+  Widget _buildCategoryRow(String? category) {
+    final c = category;
+    if (c == null || c.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final icon = iconForCategory(c);
+    final color = colorForCategory(c);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Kategori', style: TextStyle(color: Colors.grey)),
+          Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 6),
+              Text(c, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  
 }

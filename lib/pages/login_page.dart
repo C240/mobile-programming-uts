@@ -1,5 +1,3 @@
-// lib/pages/login_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:mobile_programming_uts/data/database_helper.dart';
 import 'package:mobile_programming_uts/models/user_model.dart';
@@ -23,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
         _passwordController.text,
       );
 
+      if (!mounted) return;
       if (userMap != null) {
         User loggedInUser = User.fromMap(userMap);
         Navigator.pushReplacementNamed(

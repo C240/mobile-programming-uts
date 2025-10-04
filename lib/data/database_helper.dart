@@ -1,5 +1,3 @@
-// lib/data/database_helper.dart
-
 import 'dart:math';
 import 'package:mobile_programming_uts/models/user_model.dart';
 import 'package:sqflite/sqflite.dart';
@@ -22,8 +20,9 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'banking.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -54,12 +53,18 @@ class DatabaseHelper {
         toAccountNumber TEXT,
         amount REAL,
         description TEXT,
+        category TEXT,
         timestamp TEXT
       )
     ''');
   }
 
-  // Register Function
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE transactions ADD COLUMN category TEXT');
+    }
+  }
+
   Future<int> registerUser(String username, String password, String pin) async {
     final db = await database;
     return await db.transaction((txn) async {
@@ -72,7 +77,7 @@ class DatabaseHelper {
         },
         conflictAlgorithm: ConflictAlgorithm.abort,
       );
-      String accountNumber = 'ID' + Random().nextInt(99999999).toString().padLeft(8, '0');
+      String accountNumber = 'ID${Random().nextInt(99999999).toString().padLeft(8, '0')}';
       await txn.insert(
         'accounts',
         {
@@ -98,8 +103,6 @@ class DatabaseHelper {
     return null;
   }
 
-  
-  // Multi-account: get all accounts for a user
   Future<List<Map<String, dynamic>>> getAccounts(int userId) async {
     final db = await database;
     var result = await db.query(
@@ -111,10 +114,9 @@ class DatabaseHelper {
     return result;
   }
 
-  // Multi-account: create additional account for a user
   Future<int> createAccount(int userId, double initialBalance) async {
     final db = await database;
-    String accountNumber = 'ID' + Random().nextInt(99999999).toString().padLeft(8, '0');
+    String accountNumber = 'ID${Random().nextInt(99999999).toString().padLeft(8, '0')}';
     return await db.insert(
       'accounts',
       {
@@ -131,6 +133,7 @@ class DatabaseHelper {
     String toAccountNumber,
     double amount,
     String description,
+    {String? category}
   ) async {
     final db = await database;
     return await db.transaction((txn) async {
@@ -142,7 +145,7 @@ class DatabaseHelper {
       if (fromAccountResult.isEmpty) {
         throw Exception('Rekening pengirim tidak ditemukan');
       }
-      double fromBalance = fromAccountResult.first['balance'] as double;
+      double fromBalance = (fromAccountResult.first['balance'] as num).toDouble();
       if (fromBalance < amount) {
         throw Exception('Saldo tidak mencukupi');
       }
@@ -163,7 +166,7 @@ class DatabaseHelper {
       if (toAccountResult.isEmpty) {
         throw Exception('Rekening tujuan tidak ditemukan');
       }
-      double toBalance = toAccountResult.first['balance'] as double;
+      double toBalance = (toAccountResult.first['balance'] as num).toDouble();
       double newToBalance = toBalance + amount;
       await txn.update(
         'accounts',
@@ -179,6 +182,7 @@ class DatabaseHelper {
           'toAccountNumber': toAccountNumber,
           'amount': amount,
           'description': description,
+          'category': category,
           'timestamp': DateTime.now().toIso8601String(),
         });
       return transactionId;
@@ -219,8 +223,6 @@ class DatabaseHelper {
     }
     return null;
   }
-  
-  // --- FUNGSI YANG HILANG (getUserById) ---
   Future<User?> getUserById(int id) async {
     final db = await database;
     var result = await db.query('users', where: 'id = ?', whereArgs: [id]);
@@ -229,8 +231,6 @@ class DatabaseHelper {
     }
     return null;
   }
-
-  // Dapatkan user berdasarkan nomor rekening (untuk menampilkan nama penerima)
   Future<User?> getUserByAccountNumber(String accountNumber) async {
     final db = await database;
     final res = await db.rawQuery(
@@ -242,8 +242,6 @@ class DatabaseHelper {
     }
     return null;
   }
-  
-  // --- FUNGSI YANG HILANG (updatePin) ---
   Future<bool> updatePin(int userId, String oldPin, String newPin) async {
     final db = await database;
     

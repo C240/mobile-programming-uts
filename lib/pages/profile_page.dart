@@ -1,5 +1,3 @@
-// lib/pages/profile_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:mobile_programming_uts/models/user_model.dart';
 import 'package:mobile_programming_uts/providers/theme_provider.dart';
