@@ -6,6 +6,9 @@ import 'package:mobile_programming_uts/data/database_helper.dart';
 import 'package:mobile_programming_uts/models/account_model.dart';
 import 'package:mobile_programming_uts/models/transaction_model.dart';
 import 'package:mobile_programming_uts/models/user_model.dart';
+import 'package:mobile_programming_uts/utils/format.dart';
+import 'package:mobile_programming_uts/utils/rupiah_input_formatter.dart';
+import 'package:mobile_programming_uts/widgets/confirm_transfer_sheet.dart';
 
 class TransferPage extends StatefulWidget {
   const TransferPage({super.key});
@@ -21,6 +24,15 @@ class _TransferPageState extends State<TransferPage> {
   final _pinController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  String? _recipientName;
+  bool _checkingRecipient = false;
+
+  // Pemilihan dompet sumber
+  List<Account> _userAccounts = [];
+  Account? _selectedFromAccount;
+  bool _loadingAccounts = false;
+  bool _initialized = false;
+
   // Semua fungsi logika ( _validateAndShowPinDialog, _showPinDialog, _performTransfer, _showError )
   // tetap sama seperti sebelumnya, tidak ada perubahan.
 
@@ -29,17 +41,51 @@ class _TransferPageState extends State<TransferPage> {
     // Pastikan form valid
     if (_formKey.currentState!.validate()) {
       final amountString = _amountController.text;
-      final amount = double.tryParse(amountString);
+      final amount = parseRupiahToDouble(amountString);
+      final toAcc = _toAccountController.text.trim();
+      final fromAcc = (_selectedFromAccount ?? (ModalRoute.of(context)!.settings.arguments as Account)).accountNumber;
 
       // Pastikan jumlah adalah angka yang valid
-      if (amount == null) {
+      if (amount <= 0) {
         _showError('Format jumlah transfer tidak valid.');
         return;
       }
+
+      // Cegah transfer ke akun sendiri
+      if (toAcc == fromAcc) {
+        _showError('Tidak dapat transfer ke akun sendiri.');
+        return;
+      }
       
-      // Jika semua valid, baru tampilkan dialog PIN
-      _showPinDialog(amount);
+      // Jika semua valid, tampilkan sheet konfirmasi terlebih dahulu
+      _showConfirmSheet(amount);
     }
+  }
+
+  void _showConfirmSheet(double amount) {
+    final from = _selectedFromAccount ?? (ModalRoute.of(context)!.settings.arguments as Account);
+    final toAcc = _toAccountController.text.trim();
+    final desc = _descriptionController.text.trim();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return ConfirmTransferSheet(
+          fromAccount: from,
+          toAccountNumber: toAcc,
+          amount: amount,
+          recipientName: _recipientName,
+          description: desc,
+          onCancel: () => Navigator.pop(context),
+          onConfirm: () {
+            Navigator.pop(context);
+            _showPinDialog(amount);
+          },
+        );
+      },
+    );
   }
 
   void _showPinDialog(double amount) {
@@ -78,8 +124,14 @@ class _TransferPageState extends State<TransferPage> {
   }
 
   void _performTransfer(double amount) async {
-    final fromAccount = ModalRoute.of(context)!.settings.arguments as Account;
-    final user = await DatabaseHelper().getUserById(fromAccount.userId);
+    // Gunakan akun yang dipilih sebagai sumber
+    final selected = _selectedFromAccount ?? (ModalRoute.of(context)!.settings.arguments as Account);
+    // Validasi tambahan untuk keamanan
+    if (_toAccountController.text.trim() == selected.accountNumber) {
+      _showError('Tidak dapat transfer ke akun sendiri.');
+      return;
+    }
+    final user = await DatabaseHelper().getUserById(selected.userId);
 
     if (user == null) {
       _showError('Gagal memverifikasi pengguna.');
@@ -103,7 +155,7 @@ class _TransferPageState extends State<TransferPage> {
 
     try {
       int transactionId = await DatabaseHelper().transfer(
-        fromAccount.accountNumber,
+        selected.accountNumber,
         toAccountNumber,
         amount,
         description,
@@ -133,6 +185,51 @@ class _TransferPageState extends State<TransferPage> {
       );
   }
 
+  Future<void> _lookupRecipient(String accountNumber) async {
+    setState(() {
+      _checkingRecipient = true;
+      _recipientName = null;
+    });
+    final user = await DatabaseHelper().getUserByAccountNumber(accountNumber);
+    if (!mounted) return;
+    setState(() {
+      _checkingRecipient = false;
+      _recipientName = user?.username;
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final fromAccountArg = ModalRoute.of(context)!.settings.arguments as Account;
+      _selectedFromAccount = fromAccountArg;
+      _loadUserAccounts(fromAccountArg.userId);
+    }
+  }
+
+  Future<void> _loadUserAccounts(int userId) async {
+    setState(() {
+      _loadingAccounts = true;
+    });
+    final accounts = await DatabaseHelper().getAccounts(userId);
+    if (!mounted) return;
+    setState(() {
+      _userAccounts = accounts.map((map) => Account.fromMap(map)).toList();
+      if (_selectedFromAccount != null) {
+        final match = _userAccounts.firstWhere(
+          (a) => a.accountNumber == _selectedFromAccount!.accountNumber,
+          orElse: () => _userAccounts.isNotEmpty ? _userAccounts.first : _selectedFromAccount!,
+        );
+        _selectedFromAccount = match;
+      } else if (_userAccounts.isNotEmpty) {
+        _selectedFromAccount = _userAccounts.first;
+      }
+      _loadingAccounts = false;
+    });
+  }
+
   // --- KODE UI YANG DIPERBARUI DIMULAI DARI SINI ---
   @override
   Widget build(BuildContext context) {
@@ -150,6 +247,53 @@ class _TransferPageState extends State<TransferPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  'Dari Dompet',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                InputDecorator(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Pilih dompet sumber',
+                  ),
+                  child: _loadingAccounts
+                      ? const Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 8),
+                            Text('Memuat dompet...'),
+                          ],
+                        )
+                      : (_userAccounts.isEmpty
+                          ? const Text('Tidak ada dompet tersedia')
+                          : DropdownButtonHideUnderline(
+                              child: DropdownButton<Account>(
+                                isExpanded: true,
+                                value: _userAccounts.any((a) => a.accountNumber == _selectedFromAccount?.accountNumber)
+                                    ? _selectedFromAccount
+                                    : null,
+                items: _userAccounts
+                    .map(
+                      (a) => DropdownMenuItem<Account>(
+                        value: a,
+                        child: Text('${a.accountNumber} • ${formatRupiah(a.balance)}'),
+                      ),
+                    )
+                    .toList(),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedFromAccount = val;
+                                  });
+                                },
+                              ),
+                            )),
+                ),
+                const SizedBox(height: 24),
+                Text(
                   'Kirim Ke',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
@@ -161,6 +305,16 @@ class _TransferPageState extends State<TransferPage> {
                     prefixIcon: Icon(Icons.account_balance),
                     border: OutlineInputBorder(),
                   ),
+                  onChanged: (value) {
+                    // Lakukan pencarian nama penerima ketika panjang input memadai
+                    if (value.trim().length >= 10) {
+                      _lookupRecipient(value.trim());
+                    } else {
+                      setState(() {
+                        _recipientName = null;
+                      });
+                    }
+                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Nomor rekening tidak boleh kosong';
@@ -168,6 +322,27 @@ class _TransferPageState extends State<TransferPage> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 8),
+                if (_checkingRecipient)
+                  const Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text('Memeriksa penerima...'),
+                    ],
+                  ),
+                if (!_checkingRecipient && _recipientName != null)
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Nama penerima: ${_recipientName!}'),
+                    ],
+                  ),
                 const SizedBox(height: 24),
                 Text(
                   'Detail Transfer',
@@ -181,16 +356,13 @@ class _TransferPageState extends State<TransferPage> {
                     prefixText: 'Rp ',
                     border: OutlineInputBorder(),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: false),
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [RupiahInputFormatter()],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Jumlah transfer tidak boleh kosong';
                     }
-                    final amount = double.tryParse(value);
-                    if (amount == null) {
-                      return 'Format jumlah tidak valid';
-                    }
+                    final amount = parseRupiahToDouble(value);
                     if (amount <= 0) {
                       return 'Jumlah transfer harus lebih dari 0';
                     }
