@@ -1,7 +1,9 @@
-    import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
     import 'package:mobile_programming_uts/data/database_helper.dart';
     import 'package:mobile_programming_uts/models/account_model.dart';
     import 'package:mobile_programming_uts/models/transaction_model.dart';
+    import 'package:mobile_programming_uts/utils/format.dart';
+    import 'package:mobile_programming_uts/widgets/transaction_list_item.dart';
 
     class HistoryTab extends StatefulWidget {
       final Account account;
@@ -50,7 +52,9 @@
                 final transaction = transactions[index];
                 bool isDebit = transaction.fromAccountNumber == widget.account.accountNumber;
 
-                return InkWell(
+                return TransactionListItem(
+                  transaction: transaction,
+                  isDebit: isDebit,
                   onTap: () {
                     Navigator.pushNamed(
                       context,
@@ -58,27 +62,6 @@
                       arguments: transaction,
                     );
                   },
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    child: ListTile(
-                      leading: Icon(
-                        isDebit ? Icons.arrow_upward : Icons.arrow_downward,
-                        color: isDebit ? Colors.red : Colors.green,
-                      ),
-                      title: Text(
-                        'Rp ${transaction.amount.toStringAsFixed(0)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text(
-                        isDebit
-                            ? 'Transfer ke ${transaction.toAccountNumber}'
-                            : 'Terima dari ${transaction.fromAccountNumber}',
-                      ),
-                      trailing: Text(
-                        '${transaction.timestamp.day}/${transaction.timestamp.month}/${transaction.timestamp.year}',
-                      ),
-                    ),
-                  ),
                 );
               },
             );

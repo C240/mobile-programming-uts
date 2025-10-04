@@ -1,14 +1,43 @@
 // lib/pages/transaction_detail_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:mobile_programming_uts/utils/format.dart';
+import 'package:mobile_programming_uts/data/database_helper.dart';
 import 'package:mobile_programming_uts/models/transaction_model.dart';
 
-class TransactionDetailPage extends StatelessWidget {
+class TransactionDetailPage extends StatefulWidget {
   const TransactionDetailPage({super.key});
 
   @override
+  State<TransactionDetailPage> createState() => _TransactionDetailPageState();
+}
+
+class _TransactionDetailPageState extends State<TransactionDetailPage> {
+  late final Transaction transaction;
+  String? senderName;
+  String? recipientName;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    transaction = ModalRoute.of(context)!.settings.arguments as Transaction;
+    _loadNames();
+  }
+
+  Future<void> _loadNames() async {
+    final sender = await DatabaseHelper().getUserByAccountNumber(transaction.fromAccountNumber);
+    final receiver = await DatabaseHelper().getUserByAccountNumber(transaction.toAccountNumber);
+    if (!mounted) return;
+    setState(() {
+      senderName = sender?.username;
+      recipientName = receiver?.username;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final transaction = ModalRoute.of(context)!.settings.arguments as Transaction;
+    final formatted = DateFormat('dd MMM yyyy HH:mm').format(transaction.timestamp);
 
     return Scaffold(
       appBar: AppBar(
@@ -27,18 +56,20 @@ class TransactionDetailPage extends StatelessWidget {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            _buildDetailRow('Jumlah', 'Rp ${transaction.amount.toStringAsFixed(0)}'),
+            _buildDetailRow('Jumlah', formatRupiah(transaction.amount)),
             _buildDetailRow('Dari', transaction.fromAccountNumber),
+            _buildDetailRow('Nama Pengirim', senderName ?? '-'),
             _buildDetailRow('Ke', transaction.toAccountNumber),
+            _buildDetailRow('Nama Penerima', recipientName ?? '-'),
             _buildDetailRow('Deskripsi', transaction.description ?? '-'),
-            _buildDetailRow('Waktu', '${transaction.timestamp.day}/${transaction.timestamp.month}/${transaction.timestamp.year} ${transaction.timestamp.hour}:${transaction.timestamp.minute}'),
+            _buildDetailRow('Waktu', formatted),
             const Spacer(),
             ElevatedButton(
               onPressed: () {
                 if (Navigator.canPop(context)) {
                   Navigator.pop(context);
                 } else {
-                  Navigator.pushReplacementNamed(context, '/dashboard');
+                  Navigator.pushReplacementNamed(context, '/main');
                 }
               },
               style: ElevatedButton.styleFrom(
