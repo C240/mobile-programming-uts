@@ -16,7 +16,9 @@ class Account {
       id: map['id'],
       userId: map['user_id'],
       accountNumber: map['accountNumber'],
-      balance: map['balance'],
+      balance: (map['balance'] is num)
+          ? (map['balance'] as num).toDouble()
+          : double.tryParse(map['balance'].toString()) ?? 0.0,
     );
   }
 }

@@ -1,13 +1,20 @@
-    import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
     import 'package:mobile_programming_uts/models/account_model.dart';
     import 'package:mobile_programming_uts/models/user_model.dart';
-    import 'package:mobile_programming_uts/widgets/balance_card.dart';
+import 'package:mobile_programming_uts/widgets/balance_card.dart';
+import 'package:mobile_programming_uts/widgets/action_button.dart';
 
-    class HomeTab extends StatelessWidget {
-      final User user;
-      final Account account;
+class HomeTab extends StatelessWidget {
+  final User user;
+  final Account account;
+  final VoidCallback? onAfterTransfer;
 
-      const HomeTab({super.key, required this.user, required this.account});
+  const HomeTab({
+    super.key,
+    required this.user,
+    required this.account,
+    this.onAfterTransfer,
+  });
 
       @override
       Widget build(BuildContext context) {
@@ -28,9 +35,17 @@
                   "Fitur Utama",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                 const SizedBox(height: 16),
-                // Anda bisa menambahkan tombol-tombol lain di sini jika perlu
-                // Tombol Transfer & Riwayat sekarang ada di Bottom Navigation
+                const SizedBox(height: 16),
+                ActionButton(
+                  title: 'Transfer',
+                  icon: Icons.send,
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/transfer', arguments: account).then((_) {
+                      onAfterTransfer?.call();
+                    });
+                  },
+                ),
+                const SizedBox(height: 8),
               ],
             ),
           ),

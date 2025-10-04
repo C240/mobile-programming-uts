@@ -1,5 +1,3 @@
-// lib/widgets/action_button.dart
-
 import 'package:flutter/material.dart';
 
 class ActionButton extends StatelessWidget {

@@ -1,11 +1,7 @@
-// lib/pages/transfer_page.dart
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:mobile_programming_uts/data/database_helper.dart';
 import 'package:mobile_programming_uts/models/account_model.dart';
 import 'package:mobile_programming_uts/models/transaction_model.dart';
-import 'package:mobile_programming_uts/models/user_model.dart';
 import 'package:mobile_programming_uts/utils/format.dart';
 import 'package:mobile_programming_uts/utils/rupiah_input_formatter.dart';
 import 'package:mobile_programming_uts/widgets/confirm_transfer_sheet.dart';
@@ -26,38 +22,31 @@ class _TransferPageState extends State<TransferPage> {
 
   String? _recipientName;
   bool _checkingRecipient = false;
-
-  // Pemilihan dompet sumber
   List<Account> _userAccounts = [];
   Account? _selectedFromAccount;
   bool _loadingAccounts = false;
   bool _initialized = false;
-
-  // Semua fungsi logika ( _validateAndShowPinDialog, _showPinDialog, _performTransfer, _showError )
-  // tetap sama seperti sebelumnya, tidak ada perubahan.
-
-  // ... (Salin semua fungsi logika dari file Anda sebelumnya ke sini)
+  double _monthlyDebit = 0.0;
+  double _estimatedRemaining = 0.0;
+  List<String> _recentRecipients = [];
+  static const List<String> _categories = [
+    'Belanja', 'Kesehatan', 'Hiburan', 'Transportasi', 'Makan', 'Tagihan', 'Pendidikan', 'Lainnya'
+  ];
+  String? _selectedCategory = 'Belanja';
   void _validateAndShowPinDialog() {
-    // Pastikan form valid
     if (_formKey.currentState!.validate()) {
       final amountString = _amountController.text;
       final amount = parseRupiahToDouble(amountString);
       final toAcc = _toAccountController.text.trim();
       final fromAcc = (_selectedFromAccount ?? (ModalRoute.of(context)!.settings.arguments as Account)).accountNumber;
-
-      // Pastikan jumlah adalah angka yang valid
       if (amount <= 0) {
         _showError('Format jumlah transfer tidak valid.');
         return;
       }
-
-      // Cegah transfer ke akun sendiri
       if (toAcc == fromAcc) {
         _showError('Tidak dapat transfer ke akun sendiri.');
         return;
       }
-      
-      // Jika semua valid, tampilkan sheet konfirmasi terlebih dahulu
       _showConfirmSheet(amount);
     }
   }
@@ -124,9 +113,7 @@ class _TransferPageState extends State<TransferPage> {
   }
 
   void _performTransfer(double amount) async {
-    // Gunakan akun yang dipilih sebagai sumber
     final selected = _selectedFromAccount ?? (ModalRoute.of(context)!.settings.arguments as Account);
-    // Validasi tambahan untuk keamanan
     if (_toAccountController.text.trim() == selected.accountNumber) {
       _showError('Tidak dapat transfer ke akun sendiri.');
       return;
@@ -159,6 +146,7 @@ class _TransferPageState extends State<TransferPage> {
         toAccountNumber,
         amount,
         description,
+        category: _selectedCategory,
       );
 
       var newTransactionMap = await DatabaseHelper().getTransactionById(transactionId);
@@ -206,6 +194,8 @@ class _TransferPageState extends State<TransferPage> {
       final fromAccountArg = ModalRoute.of(context)!.settings.arguments as Account;
       _selectedFromAccount = fromAccountArg;
       _loadUserAccounts(fromAccountArg.userId);
+      _amountController.addListener(_updateEstimatedRemaining);
+      _loadTransferInsights();
     }
   }
 
@@ -230,14 +220,50 @@ class _TransferPageState extends State<TransferPage> {
     });
   }
 
-  // --- KODE UI YANG DIPERBARUI DIMULAI DARI SINI ---
+  void _loadTransferInsights() async {
+    if (_selectedFromAccount == null) return;
+    final maps = await DatabaseHelper().getTransactions(_selectedFromAccount!.accountNumber);
+    final now = DateTime.now();
+    double monthDebit = 0.0;
+    final List<String> recipients = [];
+    for (final m in maps) {
+      final tx = Transaction.fromMap(m);
+      final isDebit = tx.fromAccountNumber == _selectedFromAccount!.accountNumber;
+      if (isDebit && tx.timestamp.year == now.year && tx.timestamp.month == now.month) {
+        monthDebit += tx.amount;
+      }
+      if (isDebit) {
+        recipients.add(tx.toAccountNumber);
+      }
+    }
+    final uniqueRecipients = <String>[];
+    for (final r in recipients) {
+      if (!uniqueRecipients.contains(r)) uniqueRecipients.add(r);
+      if (uniqueRecipients.length >= 5) break;
+    }
+    setState(() {
+      _monthlyDebit = monthDebit;
+      _recentRecipients = uniqueRecipients;
+    });
+    _updateEstimatedRemaining();
+  }
+
+  void _updateEstimatedRemaining() {
+    if (_selectedFromAccount == null) return;
+    final amountString = _amountController.text;
+    final amount = parseRupiahToDouble(amountString);
+    final base = _selectedFromAccount!.balance;
+    setState(() {
+      _estimatedRemaining = (amount > 0) ? (base - amount) : base;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transfer'),
       ),
-      // Gunakan SingleChildScrollView agar tidak overflow saat keyboard muncul
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -246,6 +272,77 @@ class _TransferPageState extends State<TransferPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (_selectedFromAccount != null) ...[
+                  Card(
+                    elevation: 0,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Ringkasan', style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Saldo', style: Theme.of(context).textTheme.labelMedium),
+                                    const SizedBox(height: 4),
+                                    Text(formatRupiah(_selectedFromAccount!.balance), style: Theme.of(context).textTheme.titleMedium),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Debit Bulan Ini', style: Theme.of(context).textTheme.labelMedium),
+                                    const SizedBox(height: 4),
+                                    Text(formatRupiah(_monthlyDebit), style: Theme.of(context).textTheme.titleMedium),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.calculate, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Sisa saldo (estimasi): ${formatRupiah(_estimatedRemaining)}',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_recentRecipients.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text('Penerima terakhir', style: Theme.of(context).textTheme.titleSmall),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _recentRecipients.map((acc) {
+                                return InputChip(
+                                  label: Text(acc),
+                                  onPressed: () {
+                                    _toAccountController.text = acc;
+                                    _lookupRecipient(acc);
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 Text(
                   'Dari Dompet',
                   style: Theme.of(context).textTheme.titleLarge,
@@ -306,7 +403,6 @@ class _TransferPageState extends State<TransferPage> {
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
-                    // Lakukan pencarian nama penerima ketika panjang input memadai
                     if (value.trim().length >= 10) {
                       _lookupRecipient(value.trim());
                     } else {
@@ -375,6 +471,23 @@ class _TransferPageState extends State<TransferPage> {
                   decoration: const InputDecoration(
                     labelText: 'Deskripsi (Opsional)',
                     prefixIcon: Icon(Icons.note_add),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedCategory,
+                  items: _categories
+                      .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
+                      .toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedCategory = val;
+                    });
+                  },
+                  decoration: const InputDecoration(
+                    labelText: 'Kategori',
+                    prefixIcon: Icon(Icons.label_outline),
                     border: OutlineInputBorder(),
                   ),
                 ),
