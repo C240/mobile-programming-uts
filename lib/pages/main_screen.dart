@@ -7,6 +7,7 @@ import 'package:mobile_programming_uts/models/user_model.dart';
 import 'package:mobile_programming_uts/pages/tabs/home_tab.dart';
 import 'package:mobile_programming_uts/pages/tabs/history_tab.dart';
 import 'package:mobile_programming_uts/pages/tabs/profile_tab.dart';
+import 'package:mobile_programming_uts/utils/format.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -20,7 +21,8 @@ class _MainScreenState extends State<MainScreen> {
   List<Widget> _pages = [];
 
   User? _user;
-  Account? _account;
+  List<Account> _accounts = [];
+  Account? _selectedAccount;
 
   @override
   void didChangeDependencies() {
@@ -28,22 +30,32 @@ class _MainScreenState extends State<MainScreen> {
     if (_user == null) {
       final userArgs = ModalRoute.of(context)!.settings.arguments as User;
       _user = userArgs;
-      _loadAccountData(userArgs.id);
+      _loadAccounts(userArgs.id);
     }
   }
 
-  void _loadAccountData(int userId) async {
-    var accountMap = await DatabaseHelper().getAccount(userId);
-    if (accountMap != null) {
+  void _loadAccounts(int userId) async {
+    final accountsMap = await DatabaseHelper().getAccounts(userId);
+    if (accountsMap.isNotEmpty) {
+      final accounts = accountsMap.map((m) => Account.fromMap(m)).toList();
       setState(() {
-        _account = Account.fromMap(accountMap);
-        // Inisialisasi daftar halaman setelah data user dan akun didapat
+        _accounts = accounts;
+        _selectedAccount = _selectedAccount ?? accounts.first;
         _pages = [
-          HomeTab(user: _user!, account: _account!),
-          HistoryTab(account: _account!),
+          HomeTab(user: _user!, account: _selectedAccount!),
+          HistoryTab(account: _selectedAccount!),
           ProfileTab(user: _user!),
         ];
       });
+      // Seed akun kedua untuk demo multi-akun jika baru ada satu akun
+      if (accounts.length == 1) {
+        await DatabaseHelper().createAccount(userId, 250000.0);
+        final refreshed = await DatabaseHelper().getAccounts(userId);
+        final refreshedAccounts = refreshed.map((m) => Account.fromMap(m)).toList();
+        setState(() {
+          _accounts = refreshedAccounts;
+        });
+      }
     }
   }
 
@@ -51,10 +63,10 @@ class _MainScreenState extends State<MainScreen> {
     if (index == 1) {
       // Index 1 adalah tombol 'Transfer'
       // Kita tidak mengganti tab, tapi membuka halaman baru
-      Navigator.pushNamed(context, '/transfer', arguments: _account).then((_) {
+      Navigator.pushNamed(context, '/transfer', arguments: _selectedAccount).then((_) {
         // Muat ulang data setelah kembali dari halaman transfer
         if (_user != null) {
-          _loadAccountData(_user!.id);
+          _loadAccounts(_user!.id);
         }
       });
     } else {
@@ -65,6 +77,17 @@ class _MainScreenState extends State<MainScreen> {
       });
     }
   }
+
+  void _onSelectAccount(Account account) {
+    setState(() {
+      _selectedAccount = account;
+      _pages = [
+        HomeTab(user: _user!, account: _selectedAccount!),
+        HistoryTab(account: _selectedAccount!),
+        ProfileTab(user: _user!),
+      ];
+    });
+  }
   
   void _logout() {
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
@@ -73,7 +96,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     // Tampilkan loading jika data belum siap
-    if (_user == null || _account == null) {
+    if (_user == null || _selectedAccount == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -86,6 +109,27 @@ class _MainScreenState extends State<MainScreen> {
             tooltip: 'Logout',
             onPressed: _logout,
           ),
+          if (_accounts.isNotEmpty)
+            PopupMenuButton<Account>(
+              icon: const Icon(Icons.account_balance_wallet),
+              tooltip: 'Pilih Akun',
+              onSelected: _onSelectAccount,
+              itemBuilder: (context) {
+                return _accounts.map((acc) {
+                  return PopupMenuItem<Account>(
+                    value: acc,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(child: Text(acc.accountNumber)),
+                        const SizedBox(width: 12),
+                        Text(formatRupiah(acc.balance)),
+                      ],
+                    ),
+                  );
+                }).toList();
+              },
+            ),
         ],
       ),
       body: _pages[_selectedIndex],

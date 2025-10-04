@@ -98,18 +98,32 @@ class DatabaseHelper {
     return null;
   }
 
-  Future<Map<String, dynamic>?> getAccount(int userId) async {
+  
+  // Multi-account: get all accounts for a user
+  Future<List<Map<String, dynamic>>> getAccounts(int userId) async {
     final db = await database;
     var result = await db.query(
       'accounts',
       where: 'user_id = ?',
       whereArgs: [userId],
+      orderBy: 'id ASC',
     );
-    
-    if (result.isNotEmpty) {
-      return result.first;
-    }
-    return null;
+    return result;
+  }
+
+  // Multi-account: create additional account for a user
+  Future<int> createAccount(int userId, double initialBalance) async {
+    final db = await database;
+    String accountNumber = 'ID' + Random().nextInt(99999999).toString().padLeft(8, '0');
+    return await db.insert(
+      'accounts',
+      {
+        'user_id': userId,
+        'accountNumber': accountNumber,
+        'balance': initialBalance,
+      },
+      conflictAlgorithm: ConflictAlgorithm.abort,
+    );
   }
 
   Future<int> transfer(
@@ -212,6 +226,19 @@ class DatabaseHelper {
     var result = await db.query('users', where: 'id = ?', whereArgs: [id]);
     if (result.isNotEmpty) {
       return User.fromMap(result.first);
+    }
+    return null;
+  }
+
+  // Dapatkan user berdasarkan nomor rekening (untuk menampilkan nama penerima)
+  Future<User?> getUserByAccountNumber(String accountNumber) async {
+    final db = await database;
+    final res = await db.rawQuery(
+      'SELECT u.id, u.username FROM users u INNER JOIN accounts a ON a.user_id = u.id WHERE a.accountNumber = ?',
+      [accountNumber],
+    );
+    if (res.isNotEmpty) {
+      return User.fromMap(res.first);
     }
     return null;
   }
