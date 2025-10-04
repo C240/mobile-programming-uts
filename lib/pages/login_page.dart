@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_programming_uts/data/database_helper.dart';
 import 'package:mobile_programming_uts/models/user_model.dart';
+import 'package:mobile_programming_uts/widgets/auth_layout.dart';
+import 'package:mobile_programming_uts/widgets/auth_text_field.dart';
+import 'package:mobile_programming_uts/widgets/auth_primary_button.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -38,24 +41,23 @@ class _LoginPageState extends State<LoginPage> {
   }
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final borderRadius = BorderRadius.circular(12);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login Mobile Banking'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: AuthLayout(
+        title: 'Masuk',
+        subtitle: 'Login Mobile Banking',
         child: Form(
           key: _formKey,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
+              AuthTextField(
                 controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
+                label: 'Username',
+                icon: Icons.person,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.username],
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Username tidak boleh kosong';
@@ -63,15 +65,15 @@ class _LoginPageState extends State<LoginPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
+              const SizedBox(height: 12),
+              AuthTextField(
                 controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
+                label: 'Password',
+                icon: Icons.lock,
+                obscure: true,
+                toggleObscure: true,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.password],
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Password tidak boleh kosong';
@@ -79,14 +81,9 @@ class _LoginPageState extends State<LoginPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _login,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: const Text('Login'),
-              ),
+              const SizedBox(height: 20),
+              AuthPrimaryButton(text: 'Login', onPressed: _login),
+              const SizedBox(height: 8),
               TextButton(
                 onPressed: () {
                   Navigator.pushNamed(context, '/register');
