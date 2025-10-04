@@ -262,4 +262,49 @@ class DatabaseHelper {
 
     return false;
   }
+
+  Future<int> topUp(
+    String accountNumber,
+    double amount,
+    String paymentMethod,
+    String description,
+  ) async {
+    final db = await database;
+    return await db.transaction((txn) async {
+      // Get current account balance
+      var accountResult = await txn.query(
+        'accounts',
+        where: 'accountNumber = ?',
+        whereArgs: [accountNumber],
+      );
+      
+      if (accountResult.isEmpty) {
+        throw Exception('Rekening tidak ditemukan');
+      }
+      
+      double currentBalance = (accountResult.first['balance'] as num).toDouble();
+      double newBalance = currentBalance + amount;
+      
+      // Update account balance
+      await txn.update(
+        'accounts',
+        {'balance': newBalance},
+        where: 'accountNumber = ?',
+        whereArgs: [accountNumber],
+      );
+      
+      // Record the top-up transaction
+      // For top-up, we use a special "SYSTEM" account as the source
+      int transactionId = await txn.insert('transactions', {
+        'fromAccountNumber': 'SYSTEM_TOPUP',
+        'toAccountNumber': accountNumber,
+        'amount': amount,
+        'description': description,
+        'category': 'Top-Up & Data',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      
+      return transactionId;
+    });
+  }
 }

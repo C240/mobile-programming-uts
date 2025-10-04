@@ -3,6 +3,7 @@ import 'package:mobile_programming_uts/pages/change_pin_page.dart';
 import 'package:mobile_programming_uts/pages/login_page.dart';
 import 'package:mobile_programming_uts/pages/main_screen.dart';
 import 'package:mobile_programming_uts/pages/register_page.dart';
+import 'package:mobile_programming_uts/pages/topup_page.dart';
 import 'package:mobile_programming_uts/pages/transaction_detail_page.dart';
 import 'package:mobile_programming_uts/pages/transfer_list_page.dart';
 import 'package:mobile_programming_uts/pages/transfer_page.dart';
@@ -42,6 +43,7 @@ class MyApp extends StatelessWidget {
               '/register': (context) => const RegisterPage(),
               '/main': (context) => const MainScreen(),
               '/transfer': (context) => const TransferPage(),
+              '/topup': (context) => const TopUpPage(),
               '/transaction_detail': (context) => const TransactionDetailPage(),
               '/change_pin': (context) => const ChangePinPage(),
               '/transfer_list': (context) => TransferListPage(),
