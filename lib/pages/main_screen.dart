@@ -7,6 +7,7 @@ import 'package:mobile_programming_uts/pages/tabs/home_tab.dart';
 import 'package:mobile_programming_uts/pages/tabs/history_tab.dart';
 import 'package:mobile_programming_uts/pages/tabs/insight_tab.dart';
 import 'package:mobile_programming_uts/pages/tabs/profile_tab.dart';
+import 'package:mobile_programming_uts/pages/settings_page.dart';
 import 'package:mobile_programming_uts/utils/format.dart';
 import 'package:mobile_programming_uts/utils/branding.dart';
 
@@ -53,10 +54,14 @@ class _MainScreenState extends State<MainScreen> {
           ProfileTab(user: _user!),
         ];
       });
+
+      // Auto-create account jika cuma 1
       if (accounts.length == 1) {
         await DatabaseHelper().createAccount(userId, 250000.0);
         final refreshed = await DatabaseHelper().getAccounts(userId);
-        final refreshedAccounts = refreshed.map((m) => Account.fromMap(m)).toList();
+        final refreshedAccounts = refreshed
+            .map((m) => Account.fromMap(m))
+            .toList();
         setState(() {
           _accounts = refreshedAccounts;
         });
@@ -85,7 +90,14 @@ class _MainScreenState extends State<MainScreen> {
       ];
     });
   }
-  
+
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SettingsPage(user: _user!)),
+    );
+  }
+
   void _logout() {
     Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
@@ -111,6 +123,13 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.settings,
+            ), // ⚙️ Tombol pengaturan di pojok kanan atas
+            tooltip: 'Pengaturan',
+            onPressed: _openSettings,
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
@@ -144,10 +163,18 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Beranda'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Beranda',
+          ),
           NavigationDestination(icon: Icon(Icons.history), label: 'Riwayat'),
           NavigationDestination(icon: Icon(Icons.insights), label: 'Insight'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profil'),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profil',
+          ),
         ],
       ),
     );

@@ -241,15 +241,16 @@ class DatabaseHelper {
     return null;
   }
 
-  Future<List<Map<String, dynamic>>> getAccountsByAccountNumber(String accountNumber) async {
-  final db = await database;
-  return await db.query(
-    'accounts',
-    where: 'accountNumber = ?',
-    whereArgs: [accountNumber],
-  );
-}
-
+  Future<List<Map<String, dynamic>>> getAccountsByAccountNumber(
+    String accountNumber,
+  ) async {
+    final db = await database;
+    return await db.query(
+      'accounts',
+      where: 'accountNumber = ?',
+      whereArgs: [accountNumber],
+    );
+  }
 
   Future<bool> updatePin(int userId, String oldPin, String newPin) async {
     final db = await database;
@@ -273,7 +274,10 @@ class DatabaseHelper {
     return false;
   }
 
-  Future<void> updateAccountBalance(String accountNumber, double newBalance) async {
+  Future<void> updateAccountBalance(
+    String accountNumber,
+    double newBalance,
+  ) async {
     final db = await database;
     await db.update(
       'accounts',
@@ -282,7 +286,6 @@ class DatabaseHelper {
       whereArgs: [accountNumber],
     );
   }
-
 
   Future<int> insertTransaction({
     required String fromAccount,
@@ -301,6 +304,7 @@ class DatabaseHelper {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
+
   
   Future<int> topUp(
     String accountNumber,
@@ -316,14 +320,15 @@ class DatabaseHelper {
         where: 'accountNumber = ?',
         whereArgs: [accountNumber],
       );
-      
+
       if (accountResult.isEmpty) {
         throw Exception('Rekening tidak ditemukan');
       }
-      
-      double currentBalance = (accountResult.first['balance'] as num).toDouble();
+
+      double currentBalance = (accountResult.first['balance'] as num)
+          .toDouble();
       double newBalance = currentBalance + amount;
-      
+
       // Update account balance
       await txn.update(
         'accounts',
@@ -331,7 +336,7 @@ class DatabaseHelper {
         where: 'accountNumber = ?',
         whereArgs: [accountNumber],
       );
-      
+
       // Record the top-up transaction
       // For top-up, we use a special "SYSTEM" account as the source
       int transactionId = await txn.insert('transactions', {
@@ -342,7 +347,7 @@ class DatabaseHelper {
         'category': 'Top-Up & Data',
         'timestamp': DateTime.now().toIso8601String(),
       });
-      
+
       return transactionId;
     });
   }
