@@ -49,6 +49,18 @@ class HomeTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             ActionButton(
+              title: 'Top-Up Saldo',
+              icon: Icons.add_circle_outline,
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/topup',
+                  arguments: account,
+                ).then((_) => onAfterTransfer?.call());
+              },
+            ),
+            const SizedBox(height: 8),
+            ActionButton(
               title: 'Daftar Transfer',
               icon: Icons.account_balance,
               onPressed: () {
