@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_programming_uts/models/user_model.dart';
 import 'package:mobile_programming_uts/pages/change_pin_page.dart';
 import 'package:mobile_programming_uts/pages/login_page.dart';
 import 'package:mobile_programming_uts/pages/main_screen.dart';
@@ -10,6 +11,7 @@ import 'package:mobile_programming_uts/pages/transfer_list_page.dart';
 import 'package:mobile_programming_uts/pages/transfer_page.dart';
 import 'package:mobile_programming_uts/providers/theme_provider.dart';
 import 'package:mobile_programming_uts/pages/deposit_withdraw_page.dart';
+import 'package:mobile_programming_uts/pages/settings_page.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -50,11 +52,15 @@ class MyApp extends StatelessWidget {
               '/change_pin': (context) => const ChangePinPage(),
               '/transfer_list': (context) => TransferListPage(),
               '/deposit_withdraw': (context) => DepositWithdrawPage(
-                    userAccount: ModalRoute.of(context)!.settings.arguments as dynamic,
-                  ),
+                userAccount:
+                    ModalRoute.of(context)!.settings.arguments as dynamic,
+              ),
               '/tagihan': (context) => TagihanPage(
-                    account: ModalRoute.of(context)!.settings.arguments as dynamic,
-                  ),
+                account: ModalRoute.of(context)!.settings.arguments as dynamic,
+              ),
+              '/settings': (context) => SettingsPage(
+                user: ModalRoute.of(context)!.settings.arguments as User,
+              ),
             },
           );
         },

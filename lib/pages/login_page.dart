@@ -34,11 +34,14 @@ class _LoginPageState extends State<LoginPage> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login gagal! Periksa username dan password.')),
+          const SnackBar(
+            content: Text('Login gagal! Periksa username dan password.'),
+          ),
         );
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;

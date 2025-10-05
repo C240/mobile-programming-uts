@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_programming_uts/models/user_model.dart';
 import 'package:mobile_programming_uts/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:mobile_programming_uts/pages/settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -12,9 +13,7 @@ class ProfilePage extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil & Pengaturan'),
-      ),
+      appBar: AppBar(title: const Text('Profil & Pengaturan')),
       body: ListView(
         children: [
           ListTile(
@@ -24,10 +23,10 @@ class ProfilePage extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.lock),
-            title: const Text('Ubah PIN'),
+            title: const Text('setting'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              Navigator.pushNamed(context, '/change_pin', arguments: user);
+              Navigator.pushNamed(context, '/settings', arguments: user);
             },
           ),
           SwitchListTile(
@@ -35,7 +34,10 @@ class ProfilePage extends StatelessWidget {
             title: const Text('Mode Gelap'),
             value: themeProvider.isDarkMode,
             onChanged: (value) {
-              final provider = Provider.of<ThemeProvider>(context, listen: false);
+              final provider = Provider.of<ThemeProvider>(
+                context,
+                listen: false,
+              );
               provider.toggleTheme(value);
             },
           ),
