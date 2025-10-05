@@ -36,6 +36,7 @@ class _TagihanPageState extends State<TagihanPage> {
 
   void _showPinDialog(double amount) {
     _pinController.clear();
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) {
@@ -54,16 +55,19 @@ class _TagihanPageState extends State<TagihanPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                if (mounted) Navigator.pop(context);
+              },
               child: const Text('Batal'),
             ),
             ElevatedButton(
               onPressed: () async {
-
                 bool isPinValid = await DatabaseHelper().verifyPin(
                   widget.account.userId,
                   _pinController.text,
                 );
+
+                if (!mounted) return;
 
                 if (!isPinValid) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -76,8 +80,8 @@ class _TagihanPageState extends State<TagihanPage> {
                   return;
                 }
 
-                Navigator.pop(context);
-                _completePayment(amount);
+                if (mounted) Navigator.pop(context);
+                await _completePayment(amount);
               },
               child: const Text('Konfirmasi'),
             ),
@@ -89,27 +93,23 @@ class _TagihanPageState extends State<TagihanPage> {
 
   Future<void> _completePayment(double amount) async {
     try {
-
       double newBalance = widget.account.balance - amount;
       await DatabaseHelper().updateAccountBalance(widget.account.accountNumber, newBalance);
 
-
       int transactionId = await DatabaseHelper().insertTransaction(
         fromAccount: widget.account.accountNumber,
-        toAccountNumber: 'TAGIHAN_${_selectedBill!}', // dummy
+        toAccountNumber: 'TAGIHAN_${_selectedBill!}',
         amount: amount,
         description: _paymentNumberController.text,
         category: _selectedBill!,
       );
 
       var transactionMap = await DatabaseHelper().getTransactionById(transactionId);
-      if (transactionMap != null) {
+      if (transactionMap != null && mounted) {
         final transaction = Transaction.fromMap(transactionMap);
-
 
         if (_saveFavorite) {
           setState(() {
-            _favoriteAmount = amount;
             _favoriteTransactions.add({
               'name': _selectedBill!,
               'amount': amount,
@@ -117,11 +117,9 @@ class _TagihanPageState extends State<TagihanPage> {
           });
         }
 
-
         setState(() {
           widget.account.balance = newBalance;
         });
-
 
         showDialog(
           context: context,
@@ -134,16 +132,18 @@ class _TagihanPageState extends State<TagihanPage> {
                 children: [
                   const Icon(Icons.check_circle, color: Colors.green, size: 60),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Pembayaran Berhasil!',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   Text('Jumlah: ${formatRupiah(transaction.amount)}', textAlign: TextAlign.center),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      if (mounted) Navigator.pop(context);
+                    },
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 45),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -157,11 +157,13 @@ class _TagihanPageState extends State<TagihanPage> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Terjadi kesalahan: $e')),
       );
     }
 
+    if (!mounted) return;
     _amountController.clear();
     _paymentNumberController.clear();
     _pinController.clear();
@@ -178,7 +180,7 @@ class _TagihanPageState extends State<TagihanPage> {
         0;
 
     if (_selectedBill == null) return;
-    if (amount <= 0) {
+    if (amount <= 0 && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Masukkan jumlah yang valid'), backgroundColor: Colors.red),
       );
@@ -191,6 +193,7 @@ class _TagihanPageState extends State<TagihanPage> {
   Widget _buildBillButton(Map<String, dynamic> bill) {
     return GestureDetector(
       onTap: () {
+        if (!mounted) return;
         setState(() {
           _selectedBill = bill['name'];
           _amountController.text =
@@ -251,6 +254,7 @@ class _TagihanPageState extends State<TagihanPage> {
                               title: Text(fav['name']),
                               trailing: Text(formatRupiah(fav['amount'] as double)),
                               onTap: () {
+                                if (!mounted) return;
                                 setState(() {
                                   _selectedBill = fav['name'];
                                   _amountController.text = (fav['amount'] as double).toStringAsFixed(0);
@@ -279,7 +283,10 @@ class _TagihanPageState extends State<TagihanPage> {
                   children: [
                     Checkbox(
                       value: _saveFavorite,
-                      onChanged: (val) => setState(() => _saveFavorite = val ?? false),
+                      onChanged: (val) {
+                        if (!mounted) return;
+                        setState(() => _saveFavorite = val ?? false);
+                      },
                     ),
                     const Text('Simpan sebagai favorit'),
                   ],
@@ -289,14 +296,15 @@ class _TagihanPageState extends State<TagihanPage> {
                   onPressed: _payBill,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
-                    backgroundColor: Colors.green,
+                    backgroundColor: Colors.blueAccent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text('Bayar'),
+                  child: const Text('Bayar', style: TextStyle(fontSize: 16, color: Colors.white),)
                 ),
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () {
+                    if (!mounted) return;
                     setState(() {
                       _selectedBill = null;
                       _amountController.clear();
@@ -304,7 +312,7 @@ class _TagihanPageState extends State<TagihanPage> {
                       _saveFavorite = false;
                     });
                   },
-                  child: const Text('Batal'),
+                  child: const Text('Kembali', style: TextStyle(fontSize: 16)),
                 ),
               ],
             ],

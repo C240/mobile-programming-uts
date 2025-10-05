@@ -61,6 +61,18 @@ class HomeTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             ActionButton(
+              title: 'Deposit & Withdraw',
+              icon: Icons.account_balance_wallet,
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/deposit_withdraw',
+                  arguments: account,
+                ).then((_) => onAfterTransfer?.call());
+              },
+            ),
+            const SizedBox(height: 8),
+            ActionButton(
               title: 'Tagihan & Pembayaran',
               icon: Icons.receipt_long,
               onPressed: () {

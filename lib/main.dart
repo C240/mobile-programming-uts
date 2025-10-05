@@ -8,6 +8,7 @@ import 'package:mobile_programming_uts/pages/transaction_detail_page.dart';
 import 'package:mobile_programming_uts/pages/transfer_list_page.dart';
 import 'package:mobile_programming_uts/pages/transfer_page.dart';
 import 'package:mobile_programming_uts/providers/theme_provider.dart';
+import 'package:mobile_programming_uts/pages/deposit_withdraw_page.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -46,6 +47,9 @@ class MyApp extends StatelessWidget {
               '/transaction_detail': (context) => const TransactionDetailPage(),
               '/change_pin': (context) => const ChangePinPage(),
               '/transfer_list': (context) => TransferListPage(),
+              '/deposit_withdraw': (context) => DepositWithdrawPage(
+                    userAccount: ModalRoute.of(context)!.settings.arguments as dynamic,
+                  ),
               '/tagihan': (context) => TagihanPage(
                     account: ModalRoute.of(context)!.settings.arguments as dynamic,
                   ),
