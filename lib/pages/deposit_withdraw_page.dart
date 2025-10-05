@@ -255,10 +255,8 @@ class _DepositWithdrawPageState extends State<DepositWithdrawPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('Akun Anda'),
-        backgroundColor: Colors.blue.shade800,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
