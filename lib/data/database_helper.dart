@@ -241,6 +241,16 @@ class DatabaseHelper {
     return null;
   }
 
+  Future<List<Map<String, dynamic>>> getAccountsByAccountNumber(String accountNumber) async {
+  final db = await database;
+  return await db.query(
+    'accounts',
+    where: 'accountNumber = ?',
+    whereArgs: [accountNumber],
+  );
+}
+
+
   Future<bool> updatePin(int userId, String oldPin, String newPin) async {
     final db = await database;
 
@@ -263,6 +273,35 @@ class DatabaseHelper {
     return false;
   }
 
+  Future<void> updateAccountBalance(String accountNumber, double newBalance) async {
+    final db = await database;
+    await db.update(
+      'accounts',
+      {'balance': newBalance},
+      where: 'accountNumber = ?',
+      whereArgs: [accountNumber],
+    );
+  }
+
+
+  Future<int> insertTransaction({
+    required String fromAccount,
+    required String toAccountNumber,
+    required double amount,
+    String? description,
+    String? category,
+  }) async {
+    final db = await database;
+    return await db.insert('transactions', {
+      'fromAccountNumber': fromAccount,
+      'toAccountNumber': toAccountNumber,
+      'amount': amount,
+      'description': description,
+      'category': category,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+}
   Future<int> topUp(
     String accountNumber,
     double amount,

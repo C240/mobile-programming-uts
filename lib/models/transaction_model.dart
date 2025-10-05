@@ -28,4 +28,16 @@ class Transaction {
       timestamp: DateTime.parse(map['timestamp']),
     );
   }
+
+   Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'fromAccountNumber': fromAccountNumber,
+      'toAccountNumber': toAccountNumber,
+      'amount': amount,
+      'description': description,
+      'category': category,
+      'timestamp': timestamp.toIso8601String(),
+    };
+  }
 }

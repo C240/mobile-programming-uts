@@ -2,7 +2,7 @@ class Account {
   final int id;
   final int userId;
   final String accountNumber;
-  final double balance;
+  double balance;
 
   Account({
     required this.id,
