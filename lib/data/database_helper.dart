@@ -301,14 +301,14 @@ class DatabaseHelper {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
-}
+  
   Future<int> topUp(
     String accountNumber,
     double amount,
     String paymentMethod,
     String description,
   ) async {
-    final db = await database;
+    final db = await DatabaseHelper().database;
     return await db.transaction((txn) async {
       // Get current account balance
       var accountResult = await txn.query(
@@ -347,3 +347,4 @@ class DatabaseHelper {
     });
   }
 }
+

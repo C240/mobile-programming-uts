@@ -257,7 +257,6 @@ class _DepositWithdrawPageState extends State<DepositWithdrawPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Akun Anda'),
-        backgroundColor: Colors.blue.shade800,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
