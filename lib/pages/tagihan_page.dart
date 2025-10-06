@@ -187,7 +187,34 @@ class _TagihanPageState extends State<TagihanPage> {
       return;
     }
 
+    // Require payment number
+    if (_paymentNumberController.text.trim().isEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nomor pembayaran wajib diisi'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    // Prevent paying more than available balance
+    if (amount > widget.account.balance && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saldo tidak mencukupi'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     _showPinDialog(amount);
+  }
+
+  bool _canPay() {
+    final amount = double.tryParse(
+          _amountController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+        ) ??
+        0;
+    return _selectedBill != null &&
+        _paymentNumberController.text.trim().isNotEmpty &&
+        amount > 0 &&
+        amount <= widget.account.balance;
   }
 
   Widget _buildBillButton(Map<String, dynamic> bill) {
@@ -293,7 +320,7 @@ class _TagihanPageState extends State<TagihanPage> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: _payBill,
+                  onPressed: _canPay() ? _payBill : null,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
                     backgroundColor: Colors.blueAccent,
