@@ -278,6 +278,10 @@ class DatabaseHelper {
     String accountNumber,
     double newBalance,
   ) async {
+    // Prevent setting negative balance
+    if (newBalance < 0) {
+      throw Exception('Saldo tidak mencukupi');
+    }
     final db = await database;
     await db.update(
       'accounts',
